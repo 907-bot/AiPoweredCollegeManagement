@@ -9,3 +9,6 @@ Exam management system- which creates the exams, based on the timeline of studen
 Take Exam - this interface is mostly used by the Students while taking their exams online by turning on their webcam
 Behaviour Monitoring system -which monitors the students  while wrting their exam in real time 
 Reports and Analytics - which stores the data of students 
+
+Below is the Power Point presentation which describes the best about the Project Do check below
+https://907-bot-collab.github.io/AIPoweredCollegeManagementSystemppt/
