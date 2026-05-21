@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: secureexam-api
+    env: python
+    buildCommand: pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromService: pg
+      - key: REDIS_URL
+        fromService: redis
+      - key: JWT_SECRET_KEY
+        generateValue: true
+    postgres:
+      version: "15"
+    redis:
+      version: "7"
+
+  - type: worker
+    name: secureexam-worker
+    env: python
+    buildCommand: pip install -e .
+    startCommand: celery -A app.tasks worker --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        fromService: pg
+      - key: REDIS_URL
+        fromService: redis
+      - key: CELERY_BROKER_URL
+        fromService: redis
+      - key: CELERY_RESULT_BACKEND
+        fromService: redis
+    deploymentStrategy: Rolling
+
+  - type: redis
+    name: secureexam-redis
+    version: "7"
+
+  - type: postgres
+    name: secureexam-db
+    version: "15"
+    pgVersion: "15"

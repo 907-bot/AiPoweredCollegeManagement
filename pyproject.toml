@@ -1,0 +1,66 @@
+[project]
+name = "secureexam-pro"
+version = "1.0.0"
+description = "Enterprise AI-Powered Secure Online Exam & Proctoring Platform"
+requires-python = ">=3.11"
+authors = [{name = "SecureExam Team", email = "team@secureexam.io"}]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy>=2.0.35",
+    "asyncpg>=0.30.0",
+    "redis>=5.2.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.17",
+    "aiofiles>=24.1.0",
+    "httpx>=0.28.0",
+    "celery>=5.4.0",
+    "flower>=2.0.1",
+    "opencv-python-headless>=4.10.0",
+    "mediapipe>=0.10.23",
+    "numpy>=2.2.0",
+    "pillow>=11.0.0",
+    "python-dateutil>=2.9.0",
+    "loguru>=0.7.3",
+    "sentry-sdk[fastapi]>=2.20.0",
+    "alembic>=1.14.0",
+    "tenacity>=9.0.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.10.0",
+    "ruff>=0.8.0",
+    "mypy>=1.14.0",
+    "pre-commit>=4.1.0",
+]
+ui = [
+    "gradio>=5.44.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = []
+
+[tool.black]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
