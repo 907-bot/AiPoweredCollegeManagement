@@ -1,7 +1,6 @@
 """Database configuration and session management."""
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import (
@@ -14,23 +13,27 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
-# Fix Render's postgres:// URL to work with asyncpg (needs postgresql+asyncpg://)
+
 def _fix_db_url(url: str) -> str:
+    """Convert any postgres URL variant to the asyncpg-compatible format."""
     if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif url.startswith("postgresql://") and "+asyncpg" not in url:
-        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql://") and "+asyncpg" not in url:
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     return url
 
 
-# Create async engine
+# Create async engine — lazy connection, no actual DB call here
 engine: AsyncEngine = create_async_engine(
     _fix_db_url(settings.database_url),
     echo=settings.debug,
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_max_overflow,
-    poolclass=NullPool if settings.environment == "testing" else None,
     pool_pre_ping=True,
+    # pool_size/max_overflow only apply when NOT using NullPool
+    **({} if settings.environment == "testing" else {
+        "pool_size": settings.database_pool_size,
+        "max_overflow": settings.database_max_overflow,
+    }),
+    poolclass=NullPool if settings.environment == "testing" else None,
 )
 
 # Async session factory
@@ -61,7 +64,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-# Redis client
+# Redis client — lazy connection, no actual call here
 redis_client: Redis = Redis.from_url(
     settings.redis_url,
     encoding="utf-8",
@@ -72,22 +75,3 @@ redis_client: Redis = Redis.from_url(
 async def get_redis() -> Redis:
     """Get Redis client."""
     return redis_client
-
-
-# Health check functions
-async def check_database() -> bool:
-    """Check if database connection is healthy."""
-    try:
-        async with engine.connect() as conn:
-            await conn.execute("SELECT 1")
-        return True
-    except Exception:
-        return False
-
-
-async def check_redis() -> bool:
-    """Check if Redis connection is healthy."""
-    try:
-        return await redis_client.ping()
-    except Exception:
-        return False
