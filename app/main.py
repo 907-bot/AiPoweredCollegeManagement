@@ -1,26 +1,35 @@
 """Main FastAPI application."""
+import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from app.api.routes import router as api_router
 from app.core.config import settings
-from app.db.database import engine
-from app.models.models import Base
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
-    # Startup - create all tables if they don't exist
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables ready")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Database URL prefix: {settings.database_url[:30]}...")
+
+    # Create DB tables on startup
+    try:
+        from app.db.database import engine
+        from app.models.models import Base
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables ready")
+    except Exception as e:
+        logger.error(f"DATABASE STARTUP ERROR: {e}")
+        logger.error("Check that DATABASE_URL environment variable is set correctly on Render")
+        sys.exit(1)
+
     yield
-    # Shutdown
+
     logger.info("Shutting down application")
 
 
@@ -37,13 +46,14 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with your GitHub Pages URL after deploying
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Include routers
+from app.api.routes import router as api_router
 app.include_router(api_router)
 
 
@@ -60,7 +70,6 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
