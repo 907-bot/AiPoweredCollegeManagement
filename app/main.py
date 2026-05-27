@@ -7,13 +7,18 @@ from loguru import logger
 
 from app.api.routes import router as api_router
 from app.core.config import settings
+from app.db.database import engine
+from app.models.models import Base
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
-    # Startup
+    # Startup - create all tables if they don't exist
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables ready")
     yield
     # Shutdown
     logger.info("Shutting down application")
@@ -32,7 +37,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure properly for production
+    allow_origins=["*"],  # Update with your GitHub Pages URL after deploying
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

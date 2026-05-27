@@ -6,15 +6,19 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        fromService: pg
+        fromService:
+          name: secureexam-db
+          type: pserv
+          property: connectionString
       - key: REDIS_URL
-        fromService: redis
+        fromService:
+          name: secureexam-redis
+          type: redis
+          property: connectionString
       - key: JWT_SECRET_KEY
         generateValue: true
-    postgres:
-      version: "15"
-    redis:
-      version: "7"
+      - key: ENVIRONMENT
+        value: production
 
   - type: worker
     name: secureexam-worker
@@ -23,20 +27,35 @@ services:
     startCommand: celery -A app.tasks worker --loglevel=info
     envVars:
       - key: DATABASE_URL
-        fromService: pg
+        fromService:
+          name: secureexam-db
+          type: pserv
+          property: connectionString
       - key: REDIS_URL
-        fromService: redis
+        fromService:
+          name: secureexam-redis
+          type: redis
+          property: connectionString
       - key: CELERY_BROKER_URL
-        fromService: redis
+        fromService:
+          name: secureexam-redis
+          type: redis
+          property: connectionString
       - key: CELERY_RESULT_BACKEND
-        fromService: redis
+        fromService:
+          name: secureexam-redis
+          type: redis
+          property: connectionString
     deploymentStrategy: Rolling
 
   - type: redis
     name: secureexam-redis
-    version: "7"
+    ipAllowList: []
 
-  - type: postgres
+  - type: pserv
     name: secureexam-db
-    version: "15"
-    pgVersion: "15"
+    env: docker
+    databases:
+      - name: secureexam
+        databaseName: secureexam
+        user: secureexam

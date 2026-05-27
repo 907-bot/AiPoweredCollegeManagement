@@ -1,153 +1,127 @@
-# Deployment Guide
+# Deployment Guide — SecureExam Pro
 
-## Overview
+## What goes where
 
-This guide covers deploying:
-- **Backend**: FastAPI on Render.com
-- **Frontend**: Next.js on GitHub Pages
+| Part       | Platform       |
+|------------|---------------|
+| Backend    | Render (Web Service) |
+| Database   | Render (PostgreSQL) |
+| Redis      | Render (Redis)       |
+| Frontend   | GitHub Pages         |
 
 ---
 
-## Part 1: Backend Deployment (Render.com)
+## Step 1 — Deploy Backend on Render
 
-### 1. Prepare the Repository
+### Option A — Auto deploy using render.yaml (Recommended)
 
-Push your code to GitHub:
-```bash
-git add .
-git commit -m "Ready for deployment"
-git push origin main
-```
+1. Go to [render.com](https://render.com) and login with GitHub
+2. Click **New → Blueprint**
+3. Connect your GitHub repo
+4. Render will auto-read `render.yaml` and create all services (API + DB + Redis + Worker)
+5. Wait for the deploy to finish (takes about 3-5 minutes first time)
+6. Copy your backend URL — looks like `https://secureexam-api.onrender.com`
 
-### 2. Create Render Account
+### Option B — Manual setup
 
-1. Go to [render.com](https://render.com)
-2. Sign up/Login with GitHub
-
-### 3. Deploy the Backend
-
-1. Create a **New Web Service**
-2. Connect your GitHub repository
-3. Configure:
-   - **Name**: `secureexam-api`
-   - **Branch**: `main`
+1. Create a **New Web Service** on Render
+   - Connect your GitHub repo
+   - **Root directory**: leave empty (backend is at root)
    - **Build Command**: `pip install -e .`
    - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Python version**: 3.11
 
-4. Add Environment Variables:
-   - `DATABASE_URL`: PostgreSQL connection string
-   - `REDIS_URL`: Redis connection string  
-   - `JWT_SECRET_KEY`: Generate a secure key
-
-5. Add PostgreSQL (Render managed):
-   - Create new PostgreSQL instance
+2. Create a **PostgreSQL** database (New → PostgreSQL)
+   - Name: `secureexam-db`
    - Version: 15
+   - Copy the **Internal Connection String**
 
-6. Add Redis (Render managed):
-   - Create new Redis instance
-   - Version: 7
+3. Create a **Redis** instance (New → Redis)
+   - Name: `secureexam-redis`
+   - Copy the **Internal URL**
 
-### 4. Alternative: Use render.yaml
-
-Simply connect the `render.yaml` file in your repository - Render will auto-detect it.
-
-### 5. Get Your Backend URL
-
-Note your backend URL (e.g., `https://secureexam-api.onrender.com`)
+4. Go back to your Web Service → **Environment** tab and add:
+   ```
+   DATABASE_URL    = <PostgreSQL internal connection string>
+   REDIS_URL       = <Redis internal URL>
+   JWT_SECRET_KEY  = <any long random string>
+   ENVIRONMENT     = production
+   ```
 
 ---
 
-## Part 2: Frontend Deployment (GitHub Pages)
+## Step 2 — Configure Frontend
 
-### 1. Enable GitHub Pages
+### 2a — Add your backend URL as a GitHub Secret
 
-1. Go to your repository settings
-2. Navigate to **Pages**
-3. Source: Select **GitHub Actions**
+1. Go to your GitHub repo → **Settings → Secrets and variables → Actions**
+2. Click **New repository secret**
+3. Name: `NEXT_PUBLIC_API_URL`
+4. Value: `https://secureexam-api.onrender.com/api/v1`
+   (replace with your actual Render URL)
 
-### 2. Configure Backend URL
+### 2b — Enable GitHub Pages
 
-Edit `client/lib/api.ts`:
-```typescript
-const API_BASE = "https://your-backend.onrender.com/api/v1";
-```
+1. Go to your GitHub repo → **Settings → Pages**
+2. Under **Source**, select **GitHub Actions**
+3. That's it — Pages is now ready
 
-### 3. Push Changes
+---
+
+## Step 3 — Trigger Frontend Deploy
+
+Push any change to the `client/` folder to main branch:
 
 ```bash
 git add .
-git commit -m "Configure for production"
+git commit -m "Deploy: configure production API URL"
 git push origin main
 ```
 
-### 4. Deployment会自动触发
+GitHub Actions will automatically build and deploy the frontend.
 
-The GitHub Action workflow will:
-1. Checkout code
-2. Install Node.js dependencies
-3. Build Next.js static site
-4. Deploy to GitHub Pages
-
-### 5. Get Your Frontend URL
-
-Find it at: `https://<username>.github.io/<repository>/`
+Your frontend URL will be: `https://<your-username>.github.io/<repo-name>/`
 
 ---
 
-## Testing
+## Step 4 — Update CORS on Backend
 
-1. Visit your GitHub Pages URL
-2. Try logging in with demo credentials
-3. Create an exam
-4. Test the full flow
+After you get your GitHub Pages URL, go to Render → your web service → Environment and add:
 
----
-
-## Troubleshooting
-
-### Backend Issues
-
-- **Database connection failed**: Check DATABASE_URL格式
-- **Redis connection failed**: Verify REDIS_URL
-- **502 Bad Gateway**: Check logs in Render dashboard
-
-### Frontend Issues
-
-- **API errors**: Verify BACKEND_URL正确
-- **404 on assets**: Check basePath配置
-- **CORS errors**: Update CORS_ORIGINS in backend config
+```
+CORS_ORIGINS = https://<your-username>.github.io
+```
 
 ---
 
-## Custom Domain (Optional)
+## Verify Everything Works
 
-### GitHub Pages
-1. Go to Settings → Pages
-2. Add your custom domain
-3. Update DNS records
-
-### Render
-1. Go to your service settings
-2. Add custom domain
-3. Update SSL (automatic)
+1. Visit `https://secureexam-api.onrender.com/docs` — you should see the Swagger UI
+2. Visit `https://secureexam-api.onrender.com/api/v1/health` — should return `{"status":"healthy",...}`
+3. Visit your GitHub Pages URL — login page should load
 
 ---
 
-## Security Notes
+## Bugs Fixed Before This Deploy
 
-1. Change `JWT_SECRET_KEY` in production
-2. Enable SSL on custom domains
-3. Set up regular database backups
-4. Monitor usage and costs
+| # | File | Bug | Fix |
+|---|------|-----|-----|
+| 1 | `render.yaml` | `fromService` format was wrong — Render couldn't link DB/Redis | Fixed to use proper `name/type/property` structure |
+| 2 | `app/db/database.py` | Render gives `postgres://` but asyncpg needs `postgresql+asyncpg://` | Added URL prefix fixer function |
+| 3 | `app/main.py` | DB tables were never created — app crashed on first request | Added `Base.metadata.create_all` in lifespan startup |
+| 4 | `.github/workflows/deploy.yml` | `cache: 'client'` is invalid; `NEXT_PUBLIC_API_URL` not passed to build | Fixed cache to `npm`, added env secret in build step |
+| 5 | `app/api/routes.py` | `{a.model_dump() for a in answers}` — set of dicts crashes (dicts not hashable) | Changed `{}` to `[]` (list comprehension) |
 
 ---
 
-## Cost Estimate
+## Cost (Free Tier)
 
-| Service | Free Tier | Paid |
-|---------|----------|------|
-| Render Web | 750 hours | ~$25/mo |
-| Render DB | Free for small | ~$15/mo |
-| GitHub Pages | Free | Free |
+| Service | Free? |
+|---------|-------|
+| Render Web Service | 750 hrs/month free |
+| Render PostgreSQL | Free (90 days, then ~$7/mo) |
+| Render Redis | Free |
+| GitHub Pages | Free forever |
 
-Total: ~$40/mo for production use
+> Note: On the free tier, Render spins down your backend after 15 minutes of inactivity.
+> First request after that takes ~30 seconds to wake up. Upgrade to paid (~$7/mo) to avoid this.

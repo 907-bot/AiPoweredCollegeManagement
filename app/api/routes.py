@@ -471,7 +471,7 @@ async def submit_exam(
     passed = score >= exam.passing_score
 
     # Update session
-    session.answers = {a.model_dump() for a in data.answers}
+    session.answers = [a.model_dump() for a in data.answers]
     session.score = score
     session.total_correct = correct_count
     session.total_questions = total
