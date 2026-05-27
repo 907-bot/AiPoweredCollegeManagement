@@ -2,14 +2,14 @@
 from datetime import datetime
 from typing import Optional, Union
 
-from pydantic import BaseModel, EmailStr, Field, config_dict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.models import UserRole, ExamStatus
 
 
 class ConfigMixin:
     """Shared config for schemas."""
-    model_config = config_dict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # User Schemas
