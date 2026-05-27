@@ -6,9 +6,9 @@ const nextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
-  // GitHub Pages uses /subdirectory, adjust basePath if needed
-  basePath: '',
-  assetPrefix: '',
+  // GitHub Pages serves from /AiPoweredCollegeManagement/
+  basePath: '/AiPoweredCollegeManagement',
+  assetPrefix: '/AiPoweredCollegeManagement',
 };
 
 export default nextConfig;
