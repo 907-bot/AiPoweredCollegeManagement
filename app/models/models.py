@@ -9,7 +9,7 @@ from sqlalchemy import (
     Enum as SQLEnum,
     ForeignKey,
     Integer,
-    Json,
+    JSON,
     Numeric,
     String,
     Text,
@@ -49,7 +49,7 @@ class Tenant(Base):
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     logo_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
-    settings: Mapped[Optional[dict]] = mapped_column(Json, nullable=True)
+    settings: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -96,7 +96,7 @@ class Exam(Base):
     instructions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     duration_minutes: Mapped[int] = mapped_column(Integer)
     passing_score: Mapped[int] = mapped_column(Integer, default=60)
-    questions: Mapped[dict] = mapped_column(Json)
+    questions: Mapped[dict] = mapped_column(JSON)
     shuffle_questions: Mapped[bool] = mapped_column(Boolean, default=False)
     shuffle_options: Mapped[bool] = mapped_column(Boolean, default=False)
     show_results: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -118,7 +118,7 @@ class ExamSession(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     exam_id: Mapped[int] = mapped_column(ForeignKey("exams.id"))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    answers: Mapped[Optional[dict]] = mapped_column(Json, nullable=True)
+    answers: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     score: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
     total_correct: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     total_questions: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -144,7 +144,7 @@ class BehaviorEvent(Base):
     session_id: Mapped[int] = mapped_column(ForeignKey("exam_sessions.id"))
     event_type: Mapped[str] = mapped_column(String(100))
     severity: Mapped[float] = mapped_column(Numeric(3, 2), default=0.0)
-    details: Mapped[Optional[dict]] = mapped_column(Json, nullable=True)
+    details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     frame_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Base64 encoded frame
     timestamp: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -159,8 +159,8 @@ class Report(Base):
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"))
     report_type: Mapped[str] = mapped_column(String(100))
     title: Mapped[str] = mapped_column(String(500))
-    filters: Mapped[Optional[dict]] = mapped_column(Json, nullable=True)
-    data: Mapped[dict] = mapped_column(Json)
+    filters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    data: Mapped[dict] = mapped_column(JSON)
     generated_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
